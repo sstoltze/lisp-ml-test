@@ -3,7 +3,9 @@
 (ql:quickload '(:clml.hjs
                 :clml.utility
                 :clml.decision-tree))
-(ql:quickload :clml)
+;(ql:quickload :clml)
+
+(setf lparallel:*kernel* (lparallel:make-kernel 2))
 
 (defun print-dataset (dataset &optional (n 5))
   (let* ((column-names (map 'vector
@@ -30,13 +32,8 @@
             do (format t "~VA " width item))
          (format t "~%"))))
 
-(defun recompute-forest ()
-  (setf random-forest (clml.decision-tree.random-forest:make-random-forest churn-train
-                                                                           "Churn"
-                                                                           :tree-number 30)))
-
 (defun forest-importance (forest)
-  "Stolen from internals in clml.decision-tree.random-forest"
+  "Stolen from internals in clml.decision-tree.random-forest:importance"
   (labels ((sum-up-decrease-gini (rf-tree column)
              (if (< 2 (length rf-tree))
                  (let ((node-var (caaaar rf-tree))
@@ -116,16 +113,15 @@
                  :numeric)
    :except '(18 19 20)))
 
-(defvar churn-data (setup-dataset))
-(defvar churn-train nil)
-(defvar churn-test nil)
+(defvar churn-data    (setup-dataset))
+(defvar churn-train   nil)
+(defvar churn-test    nil)
 
 (multiple-value-setq (churn-train churn-test)
   (clml.hjs.read-data:divide-dataset churn-data
                                      :divide-ratio '(3 1)
                                      :random t))
 
-(setf lparallel:*kernel* (lparallel:make-kernel 2))
 (defvar random-forest (clml.decision-tree.random-forest:make-random-forest churn-train
                                                                            "Churn"
                                                                            :tree-number 30))
@@ -144,4 +140,6 @@
    sum (cdr prediction) into total
    do (format t "~A, ~A: ~A~%" predicted actual (cdr prediction))
    finally (format t "Correct: ~A, wrong: ~A~%Accuracy: ~A~%" correct (- total correct) (float (/ correct total))))
+(format t "~%")
 (format t "Accuracy: ~A~%" (forest-accuracy churn-test "Churn" random-forest))
+(format t "~%")
